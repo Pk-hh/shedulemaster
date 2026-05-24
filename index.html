@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A clean, modern daily schedule planner that saves your tasks locally. Manage your entire year offline with no account needed." />
+  <title>PlanFlow — Daily Schedule Planner</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==============================
+       TOP NAVIGATION BAR
+  ================================ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <img src="logo.jpg" alt="PlanFlow Logo" class="brand-logo" />
+        <span class="brand-name">PlanFlow</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <div class="date-display" id="selectedDateDisplay" role="button" aria-label="Selected date" tabindex="0">
+        <span class="date-text" id="dateText">Today</span>
+        <span class="date-badge" id="dateBadge"></span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="searchToggleBtn" title="Search tasks" aria-label="Search tasks">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" id="themeToggleBtn" title="Toggle theme" aria-label="Toggle dark/light mode">
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <div class="more-menu-wrapper">
+        <button class="icon-btn" id="moreMenuBtn" title="More options" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+        </button>
+        <div class="dropdown-menu" id="moreDropdown" aria-hidden="true" role="menu">
+          <button class="dropdown-item" id="exportBtn" role="menuitem">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export JSON Backup
+          </button>
+          <button class="dropdown-item" id="importBtn" role="menuitem">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import JSON Backup
+          </button>
+          <button class="dropdown-item danger" id="clearAllBtn" role="menuitem">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Clear All Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="importFileInput" accept=".json" style="display:none" aria-hidden="true" />
+
+  <!-- ==============================
+       SEARCH OVERLAY
+  ================================ -->
+  <div class="search-overlay" id="searchOverlay" aria-hidden="true">
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search tasks by keyword..." autocomplete="off" aria-label="Search tasks" />
+        <button class="search-close-btn" id="searchCloseBtn" aria-label="Close search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       MAIN CONTENT
+  ================================ -->
+  <main class="main-content">
+
+    <!-- ---- Calendar Section ---- -->
+    <section class="calendar-section" id="calendarSection" aria-label="Calendar Selector">
+      <div class="calendar-header">
+        <button class="cal-nav-btn" id="prevMonthBtn" aria-label="Previous month">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 class="cal-month-label" id="calMonthLabel">May 2026</h2>
+        <button class="cal-nav-btn" id="nextMonthBtn" aria-label="Next month">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="calendar-weekdays">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="Monthly calendar selection grid"></div>
+      <button class="today-btn" id="todayBtn">Jump to Today</button>
+    </section>
+
+    <!-- ---- Tasks Section ---- -->
+    <section class="tasks-section" aria-label="Daily Schedule View">
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-chip">
+          <span class="stat-num" id="statTotal">0</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-num" id="statPending">0</span>
+          <span class="stat-label">Pending</span>
+        </div>
+        <div class="stat-chip completed-chip">
+          <span class="stat-num" id="statCompleted">0</span>
+          <span class="stat-label">Done</span>
+        </div>
+      </div>
+
+      <!-- Task List -->
+      <div class="task-list" id="taskList" role="list" aria-label="Task list"></div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" aria-hidden="true">
+        <div class="empty-icon">🗓️</div>
+        <h3 class="empty-title">No tasks yet</h3>
+        <p class="empty-desc">Tap the button below to add your first task for this day.</p>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ==============================
+       FLOATING ADD BUTTON
+  ================================ -->
+  <button class="fab" id="addTaskFab" title="Add task" aria-label="Add new task">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- ==============================
+       TASK MODAL (Add / Edit)
+  ================================ -->
+  <div class="modal-overlay" id="taskModalOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card" id="taskModalCard">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Add Task</h2>
+        <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form class="modal-form" id="taskForm" novalidate>
+        <!-- Hidden edit ID -->
+        <input type="hidden" id="editTaskId" />
+
+        <div class="form-group">
+          <label for="taskTitle" class="form-label">Task Title <span class="required">*</span></label>
+          <input type="text" id="taskTitle" class="form-input" placeholder="e.g. Morning workout" maxlength="100" required autocomplete="off" />
+          <span class="form-error" id="titleError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="taskDesc" class="form-label">Description <span class="optional">(optional)</span></label>
+          <textarea id="taskDesc" class="form-input form-textarea" placeholder="Add notes or details..." maxlength="500" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskStartTime" class="form-label">Start Time <span class="required">*</span></label>
+            <input type="time" id="taskStartTime" class="form-input" required />
+            <span class="form-error" id="startTimeError"></span>
+          </div>
+          <div class="form-group">
+            <label for="taskEndTime" class="form-label">End Time <span class="required">*</span></label>
+            <input type="time" id="taskEndTime" class="form-input" required />
+            <span class="form-error" id="endTimeError"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div class="status-toggle">
+            <button type="button" class="status-btn active" id="statusPending" data-status="pending">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Pending
+            </button>
+            <button type="button" class="status-btn" id="statusCompleted" data-status="completed">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Completed
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group notification-group" id="notificationGroup">
+          <label class="form-label">Reminder</label>
+          <div class="notification-row">
+            <label class="toggle-switch" title="Enable browser notification reminder">
+              <input type="checkbox" id="taskReminder" />
+              <span class="slider"></span>
+            </label>
+            <span class="notification-hint">Notify me before this task starts</span>
+          </div>
+          <select id="reminderOffset" class="form-input reminder-select" style="display:none" aria-label="Reminder trigger offset">
+            <option value="5">5 minutes before</option>
+            <option value="10" selected>10 minutes before</option>
+            <option value="15">15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+          </select>
+        </div>
+
+        <!-- Overlap Alert Warning Display Area -->
+        <div class="overlap-warning-banner" id="overlapWarning" style="display:none">
+          ⚠️ Note: This time slot overlaps with an existing task.
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn-primary" id="saveTaskBtn">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==============================
+       CONFIRM DIALOG
+  ================================ -->
+  <div class="modal-overlay confirm-overlay" id="confirmOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="confirm-card">
+      <div class="confirm-icon">🗑️</div>
+      <h3 class="confirm-title" id="confirmTitle">Delete Task?</h3>
+      <p class="confirm-desc" id="confirmDesc">This action cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button class="btn-danger" id="confirmOkBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TOAST NOTIFICATION
+  ================================ -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
