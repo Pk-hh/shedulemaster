@@ -202,8 +202,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const alarmTaskName = document.getElementById('alarmTaskName');
   const alarmTaskTime = document.getElementById('alarmTaskTime');
   const alarmDismissBtn = document.getElementById('alarmDismissBtn');
+  const alarmSnoozeBtn = document.getElementById('alarmSnoozeBtn');
+  const alarmLiveClock = document.getElementById('alarmLiveClock');
+  const alarmLiveDate = document.getElementById('alarmLiveDate');
   let alarmAudioCtx = null;
   let alarmSoundInterval = null;
+  let alarmClockInterval = null;
+  let currentAlarmTask = null; // track which task triggered the alarm
 
   // ==========================================
   // THEME MANAGEMENT
@@ -285,10 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Check schedules constantly to trigger alarms
+  // Check schedules every 30 seconds to trigger alarms
   function runNotificationScheduler() {
     setInterval(() => {
-      if (!isNotificationGranted) return;
       const now = new Date();
       const todayStr = formatDateString(now);
       const dayTasks = schedules[todayStr];
@@ -303,40 +307,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const startMinutes = startH * 60 + startM;
         const offset = parseInt(task.reminderOffset || 10, 10);
 
-        // Calculate time when the alarm should trigger
+        // Trigger window: between offset time and start time
         const triggerMinutes = startMinutes - offset;
 
         if (currentMinutes >= triggerMinutes && currentMinutes < startMinutes) {
           triggerBrowserNotification(task);
-          task.reminderFired = true; // Mark as fired so it doesn't trigger repeatedly
+          task.reminderFired = true;
           saveToLocalStorage();
         }
       });
-    }, 15000); // Check every 15 seconds for precision
+    }, 30000); // Check every 30 seconds
   }
 
+  // ==========================================
+  // ALARM AUDIO ENGINE (Continuous Loop)
+  // ==========================================
   function playAlarmSound() {
     try {
       alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      let beepCount = 0;
       function doBeep() {
         if (!alarmAudioCtx) return;
-        const oscillator = alarmAudioCtx.createOscillator();
-        const gainNode = alarmAudioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(alarmAudioCtx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, alarmAudioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(440, alarmAudioCtx.currentTime + 0.3);
-        gainNode.gain.setValueAtTime(0.6, alarmAudioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, alarmAudioCtx.currentTime + 0.4);
-        oscillator.start(alarmAudioCtx.currentTime);
-        oscillator.stop(alarmAudioCtx.currentTime + 0.4);
-        beepCount++;
-        if (beepCount >= 12) stopAlarmSound();
+        // Two-tone alarm pattern like a real mobile alarm
+        const frequencies = [880, 1100, 880, 660];
+        let timeOffset = alarmAudioCtx.currentTime;
+        frequencies.forEach((freq, i) => {
+          const osc = alarmAudioCtx.createOscillator();
+          const gain = alarmAudioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(alarmAudioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const startT = timeOffset + i * 0.12;
+          gain.gain.setValueAtTime(0, startT);
+          gain.gain.linearRampToValueAtTime(0.55, startT + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.1);
+          osc.start(startT);
+          osc.stop(startT + 0.12);
+        });
       }
       doBeep();
-      alarmSoundInterval = setInterval(doBeep, 600);
+      // Loop every 1.2 seconds — CONTINUOUS until dismissed
+      alarmSoundInterval = setInterval(doBeep, 1200);
     } catch(e) {
       console.warn('Audio playback failed:', e);
     }
@@ -347,37 +358,115 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alarmAudioCtx) { try { alarmAudioCtx.close(); } catch(e){} alarmAudioCtx = null; }
   }
 
+  // Live clock ticker inside the alarm overlay
+  function startAlarmClock() {
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      alarmLiveClock.textContent = `${h}:${m}:${s}`;
+      alarmLiveDate.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+    updateClock();
+    alarmClockInterval = setInterval(updateClock, 1000);
+  }
+
+  function stopAlarmClock() {
+    if (alarmClockInterval) { clearInterval(alarmClockInterval); alarmClockInterval = null; }
+  }
+
+  // Vibration pattern — like a real mobile alarm (buzz-pause-buzz)
+  function vibrateAlarm() {
+    if ('vibrate' in navigator) {
+      try {
+        // Long buzz pattern: buzz 400ms, pause 200ms, repeat
+        navigator.vibrate([400, 200, 400, 200, 400, 200, 400, 200, 400]);
+      } catch(e) {}
+    }
+  }
+
+  function stopVibration() {
+    if ('vibrate' in navigator) { try { navigator.vibrate(0); } catch(e) {} }
+  }
+
   function showAlarmOverlay(task) {
+    currentAlarmTask = task;
     alarmTaskName.textContent = task.title;
     alarmTaskTime.textContent = `Starts at ${formatTime12(task.startTime)}${task.description ? ' · ' + task.description : ''}`;
     alarmOverlay.setAttribute('aria-hidden', 'false');
     alarmOverlay.classList.add('show');
+    startAlarmClock();
     playAlarmSound();
+    vibrateAlarm();
+    // Focus the dismiss button for accessibility
+    setTimeout(() => alarmDismissBtn.focus(), 400);
   }
 
   function dismissAlarm() {
     alarmOverlay.setAttribute('aria-hidden', 'true');
     alarmOverlay.classList.remove('show');
     stopAlarmSound();
+    stopAlarmClock();
+    stopVibration();
+    currentAlarmTask = null;
+  }
+
+  // Snooze: re-fires the alarm after 5 minutes
+  function snoozeAlarm() {
+    stopAlarmSound();
+    stopAlarmClock();
+    stopVibration();
+    alarmOverlay.classList.remove('show');
+    alarmOverlay.setAttribute('aria-hidden', 'true');
+
+    if (currentAlarmTask) {
+      const task = currentAlarmTask;
+      currentAlarmTask = null;
+      showToast(`Snoozed "${task.title}" for 5 minutes 💤`, "info");
+      // Re-trigger in 5 minutes
+      setTimeout(() => {
+        showAlarmOverlay(task);
+      }, 5 * 60 * 1000);
+    }
   }
 
   alarmDismissBtn.addEventListener('click', dismissAlarm);
+  alarmSnoozeBtn.addEventListener('click', snoozeAlarm);
   alarmOverlay.addEventListener('click', (e) => { if (e.target === alarmOverlay) dismissAlarm(); });
+
+  // Also dismiss on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && alarmOverlay.classList.contains('show')) {
+      dismissAlarm();
+    }
+  });
 
   function triggerBrowserNotification(task) {
     showAlarmOverlay(task);
-    // Also try native desktop notification as bonus
+    // Also fire a native push via Service Worker (works in background!)
     const timeFormatted = formatTime12(task.startTime);
-    const options = {
-      body: `Starts at ${timeFormatted}. ${task.description || ''}`,
-      tag: task.id,
-      icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" stroke="%236366f1" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-    };
-    try {
-      const notification = new Notification(`Reminder: ${task.title}`, options);
-      notification.onclick = () => { window.focus(); };
-    } catch (e) {
-      console.warn("Desktop notification not available.");
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title: `⏰ Reminder: ${task.title}`,
+        body: `Starts at ${timeFormatted}. ${task.description || ''}`.trim(),
+        tag: task.id
+      });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      // Fallback to direct Notification API
+      try {
+        const notification = new Notification(`⏰ Reminder: ${task.title}`, {
+          body: `Starts at ${timeFormatted}. ${task.description || ''}`.trim(),
+          tag: task.id,
+          requireInteraction: true,
+          silent: false,
+          icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" stroke="%236366f1" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+        });
+        notification.onclick = () => { window.focus(); notification.close(); };
+      } catch (e) {
+        console.warn("Desktop notification not available.");
+      }
     }
   }
 

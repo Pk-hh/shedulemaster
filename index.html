@@ -264,19 +264,34 @@
        ALARM OVERLAY (in-app alarm)
   ================================ -->
   <div class="alarm-overlay" id="alarmOverlay" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle">
+    <div class="alarm-live-time" id="alarmLiveClock"></div>
+    <div class="alarm-live-date" id="alarmLiveDate"></div>
     <div class="alarm-card">
+      <div class="alarm-pulse-ring"></div>
+      <div class="alarm-pulse-ring"></div>
+      <div class="alarm-pulse-ring"></div>
       <div class="alarm-ring-anim" id="alarmRingAnim">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          <circle cx="12" cy="8" r="0.5" fill="currentColor"/>
         </svg>
       </div>
-      <div class="alarm-pulse-ring"></div>
       <h3 class="alarm-title" id="alarmTitle">⏰ Task Reminder</h3>
       <p class="alarm-task-name" id="alarmTaskName"></p>
       <p class="alarm-task-time" id="alarmTaskTime"></p>
-      <button class="btn-primary alarm-dismiss-btn" id="alarmDismissBtn">Dismiss Alarm</button>
+      <div class="alarm-actions">
+        <button class="alarm-snooze-btn" id="alarmSnoozeBtn">
+          💤 Snooze
+          <small>5 minutes</small>
+        </button>
+        <button class="alarm-dismiss-btn" id="alarmDismissBtn">
+          ✓ Dismiss
+          <small>Clear alarm</small>
+        </button>
+      </div>
     </div>
+    <p class="alarm-swipe-hint">Swipe up or tap Dismiss to stop</p>
   </div>
 
   <script src="script.js"></script>
