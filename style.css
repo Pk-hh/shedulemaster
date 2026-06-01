@@ -162,7 +162,8 @@ h1, h2, h3, h4 {
   height: 32px;
   width: 32px;
   border-radius: var(--radius-sm);
-  object-fit: cover;
+  object-fit: contain;
+  background: transparent;
 }
 
 .date-display {
@@ -1288,6 +1289,132 @@ h1, h2, h3, h4 {
 }
 .toast.danger {
   border-left: 4px solid var(--danger);
+}
+
+/* Multi-day badge */
+.task-multiday-badge {
+  font-size: 0.75rem;
+  color: #a78bfa;
+  background-color: rgba(167, 139, 250, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   ALARM OVERLAY
+   ========================================================================== */
+.alarm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.alarm-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.alarm-card {
+  background: var(--bg-app);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 0 80px rgba(99, 102, 241, 0.25), var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  animation: alarmSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes alarmSlideIn {
+  from { transform: scale(0.8) translateY(30px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.alarm-ring-anim {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(167,139,250,0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--accent-light);
+  animation: bellRing 0.6s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes bellRing {
+  0%   { transform: rotate(-15deg); }
+  100% { transform: rotate(15deg); }
+}
+
+.alarm-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-full);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  animation: pulsering 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulsering {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+.alarm-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.alarm-task-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent-light);
+  margin-bottom: 6px;
+}
+
+.alarm-task-time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+.alarm-dismiss-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* ==========================================================================

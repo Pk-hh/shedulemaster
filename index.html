@@ -21,7 +21,7 @@
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <div class="brand">
-        <img src="logo.jpg" alt="PlanFlow Logo" class="brand-logo" />
+        <img src="logo.jpg" alt="PlanFlow Logo" class="brand-logo" style="background:transparent;mix-blend-mode:multiply" />
         <span class="brand-name">PlanFlow</span>
       </div>
     </div>
@@ -168,6 +168,20 @@
           <textarea id="taskDesc" class="form-input form-textarea" placeholder="Add notes or details..." maxlength="500" rows="3"></textarea>
         </div>
 
+        <!-- Date Range Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskStartDate" class="form-label">Start Date <span class="required">*</span></label>
+            <input type="date" id="taskStartDate" class="form-input" required />
+            <span class="form-error" id="startDateError"></span>
+          </div>
+          <div class="form-group">
+            <label for="taskEndDate" class="form-label">End Date <span class="optional">(multi-day)</span></label>
+            <input type="date" id="taskEndDate" class="form-input" />
+          </div>
+        </div>
+
+        <!-- Time Row -->
         <div class="form-row">
           <div class="form-group">
             <label for="taskStartTime" class="form-label">Start Time <span class="required">*</span></label>
@@ -245,6 +259,25 @@
        TOAST NOTIFICATION
   ================================ -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- ==============================
+       ALARM OVERLAY (in-app alarm)
+  ================================ -->
+  <div class="alarm-overlay" id="alarmOverlay" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle">
+    <div class="alarm-card">
+      <div class="alarm-ring-anim" id="alarmRingAnim">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div class="alarm-pulse-ring"></div>
+      <h3 class="alarm-title" id="alarmTitle">⏰ Task Reminder</h3>
+      <p class="alarm-task-name" id="alarmTaskName"></p>
+      <p class="alarm-task-time" id="alarmTaskTime"></p>
+      <button class="btn-primary alarm-dismiss-btn" id="alarmDismissBtn">Dismiss Alarm</button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

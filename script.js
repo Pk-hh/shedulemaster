@@ -157,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const taskTitle = document.getElementById('taskTitle');
   const taskDesc = document.getElementById('taskDesc');
+  const taskStartDate = document.getElementById('taskStartDate');
+  const taskEndDate = document.getElementById('taskEndDate');
   const taskStartTime = document.getElementById('taskStartTime');
   const taskEndTime = document.getElementById('taskEndTime');
   const statusPending = document.getElementById('statusPending');
@@ -194,6 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Toast container
   const toastContainer = document.getElementById('toastContainer');
+
+  // Alarm overlay
+  const alarmOverlay = document.getElementById('alarmOverlay');
+  const alarmTaskName = document.getElementById('alarmTaskName');
+  const alarmTaskTime = document.getElementById('alarmTaskTime');
+  const alarmDismissBtn = document.getElementById('alarmDismissBtn');
+  let alarmAudioCtx = null;
+  let alarmSoundInterval = null;
 
   // ==========================================
   // THEME MANAGEMENT
@@ -305,20 +315,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 15000); // Check every 15 seconds for precision
   }
 
+  function playAlarmSound() {
+    try {
+      alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      let beepCount = 0;
+      function doBeep() {
+        if (!alarmAudioCtx) return;
+        const oscillator = alarmAudioCtx.createOscillator();
+        const gainNode = alarmAudioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(alarmAudioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, alarmAudioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(440, alarmAudioCtx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.6, alarmAudioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, alarmAudioCtx.currentTime + 0.4);
+        oscillator.start(alarmAudioCtx.currentTime);
+        oscillator.stop(alarmAudioCtx.currentTime + 0.4);
+        beepCount++;
+        if (beepCount >= 12) stopAlarmSound();
+      }
+      doBeep();
+      alarmSoundInterval = setInterval(doBeep, 600);
+    } catch(e) {
+      console.warn('Audio playback failed:', e);
+    }
+  }
+
+  function stopAlarmSound() {
+    if (alarmSoundInterval) { clearInterval(alarmSoundInterval); alarmSoundInterval = null; }
+    if (alarmAudioCtx) { try { alarmAudioCtx.close(); } catch(e){} alarmAudioCtx = null; }
+  }
+
+  function showAlarmOverlay(task) {
+    alarmTaskName.textContent = task.title;
+    alarmTaskTime.textContent = `Starts at ${formatTime12(task.startTime)}${task.description ? ' · ' + task.description : ''}`;
+    alarmOverlay.setAttribute('aria-hidden', 'false');
+    alarmOverlay.classList.add('show');
+    playAlarmSound();
+  }
+
+  function dismissAlarm() {
+    alarmOverlay.setAttribute('aria-hidden', 'true');
+    alarmOverlay.classList.remove('show');
+    stopAlarmSound();
+  }
+
+  alarmDismissBtn.addEventListener('click', dismissAlarm);
+  alarmOverlay.addEventListener('click', (e) => { if (e.target === alarmOverlay) dismissAlarm(); });
+
   function triggerBrowserNotification(task) {
+    showAlarmOverlay(task);
+    // Also try native desktop notification as bonus
     const timeFormatted = formatTime12(task.startTime);
     const options = {
       body: `Starts at ${timeFormatted}. ${task.description || ''}`,
-      tag: task.id, // Prevent duplicate alerts
+      tag: task.id,
       icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" stroke="%236366f1" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
     };
     try {
       const notification = new Notification(`Reminder: ${task.title}`, options);
-      notification.onclick = () => {
-        window.focus();
-      };
+      notification.onclick = () => { window.focus(); };
     } catch (e) {
-      console.warn("Unable to trigger desktop notification in this sandbox environment.");
+      console.warn("Desktop notification not available.");
     }
   }
 
@@ -480,11 +539,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Trap focus inside modal
     trapFocus(taskModalOverlay);
 
+    // Pre-fill start date with currently selected day
+    const todayISO = formatDateString(currentDate);
+
     if (editTask) {
       modalTitle.textContent = "Edit Task";
       editTaskId.value = editTask.id;
       taskTitle.value = editTask.title;
       taskDesc.value = editTask.description || '';
+      taskStartDate.value = editTask.startDate || todayISO;
+      taskEndDate.value = editTask.endDate || '';
       taskStartTime.value = editTask.startTime;
       taskEndTime.value = editTask.endTime;
       currentModalStatus = editTask.status || 'pending';
@@ -501,7 +565,9 @@ document.addEventListener('DOMContentLoaded', () => {
       editTaskId.value = "";
       currentModalStatus = 'pending';
       reminderOffset.style.display = 'none';
-      
+      taskStartDate.value = todayISO;
+      taskEndDate.value = '';
+
       const now = new Date();
       const currentH = now.getHours();
       const startH = String(currentH).padStart(2, '0');
@@ -559,9 +625,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form Validation and submission
   function resetValidationErrors() {
     taskTitle.classList.remove('invalid');
+    taskStartDate.classList.remove('invalid');
     taskStartTime.classList.remove('invalid');
     taskEndTime.classList.remove('invalid');
     document.getElementById('titleError').style.display = 'none';
+    document.getElementById('startDateError').style.display = 'none';
     document.getElementById('startTimeError').style.display = 'none';
     document.getElementById('endTimeError').style.display = 'none';
   }
@@ -577,6 +645,14 @@ document.addEventListener('DOMContentLoaded', () => {
       taskTitle.classList.add('invalid');
       document.getElementById('titleError').textContent = "Title is required";
       document.getElementById('titleError').style.display = 'block';
+      isValid = false;
+    }
+
+    // Check Start date
+    if (!taskStartDate.value) {
+      taskStartDate.classList.add('invalid');
+      document.getElementById('startDateError').textContent = "Start date is required";
+      document.getElementById('startDateError').style.display = 'block';
       isValid = false;
     }
 
@@ -613,49 +689,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isValid) return;
 
-    const dateKey = formatDateString(currentDate);
+    const startDateVal = taskStartDate.value;
+    const endDateVal = taskEndDate.value || startDateVal;
+
+    // Collect all dates in range
+    function getDateRange(start, end) {
+      const dates = [];
+      const cur = new Date(start + 'T00:00:00');
+      const last = new Date(end + 'T00:00:00');
+      while (cur <= last) {
+        dates.push(formatDateString(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return dates;
+    }
+
+    const dateRange = getDateRange(startDateVal, endDateVal);
     const taskId = editTaskId.value || 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const isMultiDay = dateRange.length > 1;
 
     const taskData = {
       id: taskId,
       title: taskTitle.value.trim(),
       description: taskDesc.value.trim(),
+      startDate: startDateVal,
+      endDate: endDateVal,
       startTime: taskStartTime.value,
       endTime: taskEndTime.value,
       status: currentModalStatus,
       reminder: taskReminder.checked,
       reminderOffset: reminderOffset.value,
-      reminderFired: false
+      reminderFired: false,
+      isMultiDay: isMultiDay,
+      totalDays: dateRange.length
     };
 
-    if (!schedules[dateKey]) {
-      schedules[dateKey] = [];
-    }
-
     if (editTaskId.value) {
-      // Find and update existing task
+      // For edit: only update the day being viewed (single-day update)
+      const dateKey = formatDateString(currentDate);
+      if (!schedules[dateKey]) schedules[dateKey] = [];
       const index = schedules[dateKey].findIndex(t => t.id === taskId);
       if (index > -1) {
         const prevTask = schedules[dateKey][index];
-        if (prevTask.startTime !== taskData.startTime || prevTask.endTime !== taskData.endTime) {
-          taskData.reminderFired = false;
-        } else {
-          taskData.reminderFired = prevTask.reminderFired;
-        }
+        taskData.reminderFired = (prevTask.startTime === taskData.startTime && prevTask.endTime === taskData.endTime) ? prevTask.reminderFired : false;
         schedules[dateKey][index] = taskData;
         showToast("Task updated successfully", "success");
       }
     } else {
-      // Add new task
-      schedules[dateKey].push(taskData);
-      showToast("Task added successfully", "success");
+      // Add across all dates in range
+      dateRange.forEach((dateKey, idx) => {
+        if (!schedules[dateKey]) schedules[dateKey] = [];
+        const dayTask = { ...taskData, id: idx === 0 ? taskId : 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) };
+        schedules[dateKey].push(dayTask);
+      });
+      if (isMultiDay) {
+        showToast(`Task added across ${dateRange.length} days 📅`, "success");
+      } else {
+        showToast("Task added successfully", "success");
+      }
     }
 
-    // Auto sort tasks by start time
-    schedules[dateKey].sort((a, b) => {
-      const [ah, am] = a.startTime.split(':').map(Number);
-      const [bh, bm] = b.startTime.split(':').map(Number);
-      return (ah * 60 + am) - (bh * 60 + bm);
+    // Auto sort tasks by start time for each affected date
+    dateRange.forEach(dateKey => {
+      if (schedules[dateKey]) {
+        schedules[dateKey].sort((a, b) => {
+          const [ah, am] = a.startTime.split(':').map(Number);
+          const [bh, bm] = b.startTime.split(':').map(Number);
+          return (ah * 60 + am) - (bh * 60 + bm);
+        });
+      }
     });
 
     saveToLocalStorage();
@@ -715,6 +817,16 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
+      let multiDayBadge = '';
+      if (task.isMultiDay && task.totalDays > 1) {
+        multiDayBadge = `
+          <span class="task-multiday-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${task.totalDays} days
+          </span>
+        `;
+      }
+
       card.innerHTML = `
         <div class="task-checkbox-wrapper">
           <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} aria-label="Toggle status for ${escapeHTML(task.title)}" />
@@ -730,6 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ${formatTime12(task.startTime)} - ${formatTime12(task.endTime)}
             </span>
             ${reminderBadge}
+            ${multiDayBadge}
           </div>
         </div>
         <div class="task-actions">
