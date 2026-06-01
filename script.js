@@ -57,6 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof schedules !== 'object' || Array.isArray(schedules)) {
           schedules = {};
         }
+
+        // Migration: Ensure all existing tasks have reminder enabled by default
+        let migrated = false;
+        for (const dateKey in schedules) {
+          if (Array.isArray(schedules[dateKey])) {
+            schedules[dateKey].forEach(task => {
+              if (task.reminder === undefined || task.reminder === false) {
+                task.reminder = true;
+                if (task.reminderOffset === undefined) {
+                  task.reminderOffset = '0'; // default to At event start
+                }
+                migrated = true;
+              }
+            });
+          }
+        }
+        if (migrated) {
+          saveToLocalStorage();
+        }
       } else {
         schedules = {};
       }
@@ -275,6 +294,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Proactive notification request on first user gesture
+  function requestPermissionOnInteraction() {
+    const askPerm = async () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        await requestNotificationPermission();
+      }
+      document.removeEventListener('click', askPerm);
+      document.removeEventListener('keydown', askPerm);
+    };
+    document.addEventListener('click', askPerm);
+    document.addEventListener('keydown', askPerm);
+  }
+
   taskReminder.addEventListener('change', () => {
     if (taskReminder.checked) {
       if (Notification.permission === 'default') {
@@ -305,12 +337,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const [startH, startM] = task.startTime.split(':').map(Number);
         const startMinutes = startH * 60 + startM;
-        const offset = parseInt(task.reminderOffset || 10, 10);
+        const offset = parseInt(task.reminderOffset !== undefined ? task.reminderOffset : 10, 10);
 
-        // Trigger window: between offset time and start time
+        // Trigger window: from trigger time up to 15 minutes after start time (grace period for throttle)
         const triggerMinutes = startMinutes - offset;
 
-        if (currentMinutes >= triggerMinutes && currentMinutes < startMinutes) {
+        if (currentMinutes >= triggerMinutes && currentMinutes < startMinutes + 15) {
           triggerBrowserNotification(task);
           task.reminderFired = true;
           saveToLocalStorage();
@@ -461,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
           tag: task.id,
           requireInteraction: true,
           silent: false,
-          icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" stroke="%236366f1" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+          icon: './logo.jpg'
         });
         notification.onclick = () => { window.focus(); notification.close(); };
       } catch (e) {
@@ -644,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
       taskReminder.checked = !!editTask.reminder;
       if (editTask.reminder) {
         reminderOffset.style.display = 'block';
-        reminderOffset.value = editTask.reminderOffset || '10';
+        reminderOffset.value = editTask.reminderOffset !== undefined ? String(editTask.reminderOffset) : '0';
       } else {
         reminderOffset.style.display = 'none';
       }
@@ -653,7 +685,9 @@ document.addEventListener('DOMContentLoaded', () => {
       modalTitle.textContent = "Add Task";
       editTaskId.value = "";
       currentModalStatus = 'pending';
-      reminderOffset.style.display = 'none';
+      taskReminder.checked = true;
+      reminderOffset.style.display = 'block';
+      reminderOffset.value = '0';
       taskStartDate.value = todayISO;
       taskEndDate.value = '';
 
@@ -694,7 +728,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStatusToggleButtonGroup();
   });
 
-  addTaskFab.addEventListener('click', () => openTaskModal());
+  addTaskFab.addEventListener('click', async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await requestNotificationPermission();
+    }
+    openTaskModal();
+  });
   modalCloseBtn.addEventListener('click', closeTaskModal);
   cancelModalBtn.addEventListener('click', closeTaskModal);
   taskModalOverlay.addEventListener('click', (e) => {
@@ -1367,6 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   initTheme();
   initNotifications();
+  requestPermissionOnInteraction();
   loadFromLocalStorage();
   updateCalendarGrid();
   renderDayTasks();

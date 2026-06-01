@@ -213,14 +213,15 @@
           <label class="form-label">Reminder</label>
           <div class="notification-row">
             <label class="toggle-switch" title="Enable browser notification reminder">
-              <input type="checkbox" id="taskReminder" />
+              <input type="checkbox" id="taskReminder" checked />
               <span class="slider"></span>
             </label>
             <span class="notification-hint">Notify me before this task starts</span>
           </div>
           <select id="reminderOffset" class="form-input reminder-select" style="display:none" aria-label="Reminder trigger offset">
+            <option value="0" selected>At event start</option>
             <option value="5">5 minutes before</option>
-            <option value="10" selected>10 minutes before</option>
+            <option value="10">10 minutes before</option>
             <option value="15">15 minutes before</option>
             <option value="30">30 minutes before</option>
             <option value="60">1 hour before</option>

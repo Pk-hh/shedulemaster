@@ -1,9 +1,10 @@
-const CACHE_NAME = 'planflow-v2';
+const CACHE_NAME = 'planflow-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './logo.jpg',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap'
 ];
 
@@ -66,8 +67,8 @@ self.addEventListener('message', (e) => {
         requireInteraction: true,   // stays on screen until user dismisses
         silent: false,
         vibrate: [400, 200, 400, 200, 400],  // buzz pattern on mobile
-        icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="%236366f1" stroke="%236366f1" stroke-width="1"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none"/></svg>',
-        badge: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="%236366f1"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>',
+        icon: './logo.jpg',
+        badge: './logo.jpg',
         actions: [
           { action: 'dismiss', title: '✓ Dismiss' },
           { action: 'snooze',  title: '💤 Snooze 5m' }
@@ -93,10 +94,11 @@ self.addEventListener('notificationclick', (e) => {
             tag: e.notification.tag + '_snooze',
             requireInteraction: true,
             silent: false,
-            vibrate: [400, 200, 400, 200, 400]
-          }).then(resolve);
+            vibrate: [400, 200, 400, 200, 400],
+            icon: './logo.jpg',
+            badge: './logo.jpg'
+          }).then(() => resolve()).catch(() => resolve());
         }, 5 * 60 * 1000);
-        resolve();
       })
     );
     return;
