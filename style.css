@@ -443,6 +443,14 @@ h1, h2, h3, h4 {
   background-color: var(--text-inverse);
 }
 
+.cal-dot.skipped {
+  background-color: var(--warning);
+}
+
+.cal-day.selected .cal-dot.skipped {
+  background-color: var(--text-inverse);
+}
+
 .today-btn {
   width: 100%;
   padding: 10px;
@@ -662,6 +670,47 @@ h1, h2, h3, h4 {
 .task-card.completed .task-time {
   background-color: var(--success-glow);
   color: var(--success);
+}
+
+/* Skipped Card Styling */
+.task-card.skipped {
+  border-color: rgba(245, 158, 11, 0.25);
+  background-color: rgba(245, 158, 11, 0.03);
+}
+
+.task-card.skipped .task-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-card.skipped .task-desc {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.task-card.skipped .task-time {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.task-status-icon.skipped {
+  background: transparent;
+  border: none;
+  color: var(--warning);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.task-status-icon.skipped:hover, .task-status-icon.skipped:focus {
+  transform: scale(1.1);
+  color: var(--warning-glow);
 }
 
 /* Card Actions */
@@ -913,7 +962,7 @@ h1, h2, h3, h4 {
 /* Status toggler inside modal */
 .status-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
@@ -949,6 +998,12 @@ h1, h2, h3, h4 {
   border-color: var(--success);
   background-color: var(--success-glow);
   color: var(--success);
+}
+
+.status-btn.active[data-status="skipped"] {
+  border-color: var(--warning);
+  background-color: var(--warning-glow);
+  color: var(--warning);
 }
 
 /* Notification switches */
@@ -1647,5 +1702,283 @@ h1, h2, h3, h4 {
   .icon-btn {
     width: 36px;
     height: 36px;
+  }
+}
+
+/* ==========================================================================
+   MONTHLY STATS BANNER STYLING
+   ========================================================================== */
+.monthly-stats-banner {
+  grid-column: 1 / -1;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all var(--transition-normal);
+}
+
+.monthly-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.monthly-stats-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monthly-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.monthly-stat-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all var(--transition-fast);
+}
+
+.monthly-stat-card:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-glass-focus);
+}
+
+.monthly-stat-card.completed {
+  border-left: 4px solid var(--success);
+}
+
+.monthly-stat-card.skipped {
+  border-left: 4px solid var(--warning);
+}
+
+.monthly-stat-card.progress-card {
+  border-left: 4px solid var(--accent);
+}
+
+.monthly-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monthly-stat-card.completed .monthly-stat-icon {
+  background-color: var(--success-glow);
+  color: var(--success);
+}
+
+.monthly-stat-card.skipped .monthly-stat-icon {
+  background-color: var(--warning-glow);
+  color: var(--warning);
+}
+
+.monthly-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.monthly-stat-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.monthly-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.progress-info {
+  gap: 8px;
+}
+
+.progress-text-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-percentage {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent-light);
+}
+
+.progress-bar-container {
+  height: 8px;
+  background-color: var(--border-glass);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Responsive Overrides for Banner */
+@media (max-width: 768px) {
+  .monthly-stats-banner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .monthly-stats-header {
+    margin: 0;
+  }
+
+  /* Hide prefix text, show only month label in very tiny premium font */
+  .monthly-stats-title {
+    font-size: 0 !important;
+  }
+  
+  #monthlyStatsMonthLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .monthly-stats-grid {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .monthly-stat-card {
+    background: transparent;
+    border: none !important;
+    padding: 0;
+    gap: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .monthly-stat-card:hover {
+    background: transparent;
+  }
+
+  .monthly-stat-icon {
+    display: none;
+  }
+
+  .monthly-stat-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .monthly-stat-num {
+    font-size: 0.75rem;
+  }
+  
+  .monthly-stat-card.completed .monthly-stat-num {
+    color: var(--success);
+  }
+
+  .monthly-stat-card.skipped .monthly-stat-num {
+    color: var(--warning);
+  }
+
+  .monthly-stat-label {
+    font-size: 0 !important;
+    text-transform: uppercase;
+  }
+
+  .monthly-stat-card.completed .monthly-stat-label::after {
+    content: "Done";
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .monthly-stat-card.skipped .monthly-stat-label::after {
+    content: "Skip";
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .monthly-stat-card.progress-card .monthly-stat-label::after {
+    content: "Rate";
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .progress-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .progress-text-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .progress-percentage {
+    font-size: 0.75rem;
+  }
+
+  /* Thin progress bar running at the bottom edge */
+  .progress-bar-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin: 0;
+  }
+
+  .progress-bar-fill {
+    border-radius: 0;
   }
 }

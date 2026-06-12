@@ -114,6 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${year}-${month}-${day}`;
   }
 
+  // Helper: Get effective status (takes into account if the task's date is in the past)
+  function getEffectiveStatus(task, dateKey) {
+    if (task.status === 'completed') return 'completed';
+    if (task.status === 'skipped') return 'skipped';
+    
+    // If pending, check if the task date is in the past
+    const todayStr = formatDateString(new Date());
+    if (dateKey < todayStr) {
+      return 'skipped';
+    }
+    return 'pending';
+  }
+
   // Helper: Human Readable Date Display
   function formatHumanDate(date) {
     const today = new Date();
@@ -182,6 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskEndTime = document.getElementById('taskEndTime');
   const statusPending = document.getElementById('statusPending');
   const statusCompleted = document.getElementById('statusCompleted');
+  const statusSkipped = document.getElementById('statusSkipped');
+  const monthlyStatsMonthLabel = document.getElementById('monthlyStatsMonthLabel');
+  const monthlyStatCompleted = document.getElementById('monthlyStatCompleted');
+  const monthlyStatSkipped = document.getElementById('monthlyStatSkipped');
+  const monthlyProgressPercentage = document.getElementById('monthlyProgressPercentage');
+  const monthlyProgressBarFill = document.getElementById('monthlyProgressBarFill');
   const taskReminder = document.getElementById('taskReminder');
   const reminderOffset = document.getElementById('reminderOffset');
   const overlapWarning = document.getElementById('overlapWarning');
@@ -709,12 +728,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateStatusToggleButtonGroup() {
+    statusPending.classList.remove('active');
+    statusCompleted.classList.remove('active');
+    statusSkipped.classList.remove('active');
+
     if (currentModalStatus === 'pending') {
       statusPending.classList.add('active');
-      statusCompleted.classList.remove('active');
-    } else {
-      statusPending.classList.remove('active');
+    } else if (currentModalStatus === 'completed') {
       statusCompleted.classList.add('active');
+    } else if (currentModalStatus === 'skipped') {
+      statusSkipped.classList.add('active');
     }
   }
 
@@ -725,6 +748,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   statusCompleted.addEventListener('click', () => {
     currentModalStatus = 'completed';
+    updateStatusToggleButtonGroup();
+  });
+
+  statusSkipped.addEventListener('click', () => {
+    currentModalStatus = 'skipped';
     updateStatusToggleButtonGroup();
   });
 
@@ -908,7 +936,8 @@ document.addEventListener('DOMContentLoaded', () => {
       statsBar.style.display = 'flex';
       const total = dayTasks.length;
       const completed = dayTasks.filter(t => t.status === 'completed').length;
-      const pending = total - completed;
+      const skipped = dayTasks.filter(t => getEffectiveStatus(t, dateKey) === 'skipped').length;
+      const pending = total - completed - skipped;
 
       statTotal.textContent = total;
       statPending.textContent = pending;
@@ -928,10 +957,12 @@ document.addEventListener('DOMContentLoaded', () => {
     taskList.innerHTML = "";
 
     dayTasks.forEach(task => {
-      const isCompleted = task.status === 'completed';
+      const status = getEffectiveStatus(task, dateKey);
+      const isCompleted = status === 'completed';
+      const isSkipped = status === 'skipped';
       
       const card = document.createElement('div');
-      card.className = `task-card ${isCompleted ? 'completed' : ''}`;
+      card.className = `task-card ${isCompleted ? 'completed' : (isSkipped ? 'skipped' : '')}`;
       card.setAttribute('role', 'listitem');
       card.dataset.id = task.id;
 
@@ -955,9 +986,22 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
+      let checkboxHTML = '';
+      if (isSkipped) {
+        checkboxHTML = `
+          <button class="task-status-icon skipped" title="Skipped. Click to make Pending." aria-label="Status: Skipped. Click to set to pending.">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </button>
+        `;
+      } else {
+        checkboxHTML = `
+          <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} aria-label="Toggle status for ${escapeHTML(task.title)}" />
+        `;
+      }
+
       card.innerHTML = `
         <div class="task-checkbox-wrapper">
-          <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} aria-label="Toggle status for ${escapeHTML(task.title)}" />
+          ${checkboxHTML}
         </div>
         <div class="task-details">
           <div class="task-title-row">
@@ -983,17 +1027,36 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Event: Toggle status checkbox
-      const checkbox = card.querySelector('.task-checkbox');
-      checkbox.addEventListener('change', () => {
-        task.status = checkbox.checked ? 'completed' : 'pending';
-        if (!checkbox.checked) {
-          task.reminderFired = false;
+      // Event: Toggle status checkbox or skipped button
+      if (isSkipped) {
+        const skippedBtn = card.querySelector('.task-status-icon.skipped');
+        if (skippedBtn) {
+          skippedBtn.addEventListener('click', () => {
+            const todayStr = formatDateString(new Date());
+            if (dateKey < todayStr) {
+              task.status = 'completed';
+            } else {
+              task.status = 'pending';
+            }
+            saveToLocalStorage();
+            renderDayTasks();
+            updateCalendarGrid();
+          });
         }
-        saveToLocalStorage();
-        renderDayTasks();
-        updateCalendarGrid();
-      });
+      } else {
+        const checkbox = card.querySelector('.task-checkbox');
+        if (checkbox) {
+          checkbox.addEventListener('change', () => {
+            task.status = checkbox.checked ? 'completed' : 'pending';
+            if (!checkbox.checked) {
+              task.reminderFired = false;
+            }
+            saveToLocalStorage();
+            renderDayTasks();
+            updateCalendarGrid();
+          });
+        }
+      }
 
       // Event: Edit Button
       card.querySelector('.edit-btn').addEventListener('click', () => {
@@ -1037,9 +1100,64 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
+  // MONTHLY STATS BANNER ENGINE
+  // ==========================================
+  function updateMonthlyStats() {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth(); // 0-indexed
+
+    // Format Month and Year for the label
+    const monthName = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (monthlyStatsMonthLabel) {
+      monthlyStatsMonthLabel.textContent = monthName;
+    }
+
+    let monthlyTotal = 0;
+    let monthlyCompleted = 0;
+    let monthlySkipped = 0;
+    let monthlyPending = 0;
+
+    for (const dateKey in schedules) {
+      const parsedDate = new Date(dateKey + 'T00:00:00');
+      if (parsedDate.getFullYear() === year && parsedDate.getMonth() === month) {
+        const dayTasks = schedules[dateKey] || [];
+        dayTasks.forEach(task => {
+          monthlyTotal++;
+          const status = getEffectiveStatus(task, dateKey);
+          if (status === 'completed') {
+            monthlyCompleted++;
+          } else if (status === 'skipped') {
+            monthlySkipped++;
+          } else {
+            monthlyPending++;
+          }
+        });
+      }
+    }
+
+    if (monthlyStatCompleted) monthlyStatCompleted.textContent = monthlyCompleted;
+    if (monthlyStatSkipped) monthlyStatSkipped.textContent = monthlySkipped;
+
+    const activeTotal = monthlyCompleted + monthlySkipped + monthlyPending;
+    let percentage = 0;
+    if (activeTotal > 0) {
+      percentage = Math.round((monthlyCompleted / activeTotal) * 100);
+    }
+
+    if (monthlyProgressPercentage) {
+      monthlyProgressPercentage.textContent = `${percentage}%`;
+    }
+    if (monthlyProgressBarFill) {
+      monthlyProgressBarFill.style.width = `${percentage}%`;
+    }
+  }
+
+  // ==========================================
   // YEARLY MONTHLY CALENDAR GRID ENGINE
   // ==========================================
   function updateCalendarGrid() {
+    updateMonthlyStats();
+
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
 
@@ -1088,7 +1206,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const visibleTasks = dayTasks.slice(0, 3);
         visibleTasks.forEach(t => {
           const dot = document.createElement('span');
-          dot.className = `cal-dot ${t.status === 'completed' ? 'completed' : ''}`;
+          const status = getEffectiveStatus(t, dateKey);
+          dot.className = `cal-dot ${status === 'completed' ? 'completed' : (status === 'skipped' ? 'skipped' : '')}`;
           dotContainer.appendChild(dot);
         });
 
@@ -1352,8 +1471,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       groupedMatches[dateKey].forEach(task => {
         const itemEl = document.createElement('div');
-        const isCompleted = task.status === 'completed';
-        itemEl.className = `task-card ${isCompleted ? 'completed' : ''}`;
+        const status = getEffectiveStatus(task, dateKey);
+        const isCompleted = status === 'completed';
+        const isSkipped = status === 'skipped';
+        itemEl.className = `task-card ${isCompleted ? 'completed' : (isSkipped ? 'skipped' : '')}`;
         
         itemEl.innerHTML = `
           <div style="grid-column: 1 / span 3; display: flex; flex-direction: column; gap: 4px;">

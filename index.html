@@ -85,6 +85,47 @@
   ================================ -->
   <main class="main-content">
 
+    <!-- Monthly Stats Banner -->
+    <div class="monthly-stats-banner" id="monthlyStatsBanner">
+      <div class="monthly-stats-header">
+        <h3 class="monthly-stats-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Monthly Overview — <span id="monthlyStatsMonthLabel"></span>
+        </h3>
+      </div>
+      <div class="monthly-stats-grid">
+        <div class="monthly-stat-card completed">
+          <div class="monthly-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="monthly-stat-info">
+            <span class="monthly-stat-num" id="monthlyStatCompleted">0</span>
+            <span class="monthly-stat-label">Completed Tasks</span>
+          </div>
+        </div>
+        <div class="monthly-stat-card skipped">
+          <div class="monthly-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </div>
+          <div class="monthly-stat-info">
+            <span class="monthly-stat-num" id="monthlyStatSkipped">0</span>
+            <span class="monthly-stat-label">Skipped Tasks</span>
+          </div>
+        </div>
+        <div class="monthly-stat-card progress-card">
+          <div class="monthly-stat-info progress-info">
+            <div class="progress-text-row">
+              <span class="monthly-stat-label">Monthly Completion Rate</span>
+              <span class="progress-percentage" id="monthlyProgressPercentage">0%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="monthlyProgressBarFill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ---- Calendar Section ---- -->
     <section class="calendar-section" id="calendarSection" aria-label="Calendar Selector">
       <div class="calendar-header">
@@ -205,6 +246,10 @@
             <button type="button" class="status-btn" id="statusCompleted" data-status="completed">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
               Completed
+            </button>
+            <button type="button" class="status-btn" id="statusSkipped" data-status="skipped">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              Skipped
             </button>
           </div>
         </div>
